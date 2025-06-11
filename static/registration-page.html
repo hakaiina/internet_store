@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <!-- Устанавливает кодировку символов для страницы в UTF-8 -->
+        <meta charset="UTF-8" />
+        <!-- Устанавливает метатег viewport для управления макетом страницы на
+        мобильных устройствах -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- Заголовок страницы, отображаемый на вкладке браузера -->
+        <title>Форма регистрации</title>
+        <!-- Стили страницы -->
+        <link rel="stylesheet" href="authorization-styles.css">
+    </head>
+    <body>
+        <!-- Раздел для создания нового пользователя -->
+        <div>
+            <!-- Заголовок для формы создания пользователя -->
+            <h2>Создание аккаунта</h2>
+            <!-- Форма для создания нового пользователя -->
+            <form id="create-user-form">
+                <!-- Поле ввода для имени пользователя -->
+                <input type="text" id="username" placeholder="Логин" required />
+                <!-- Поле ввода для email пользователя -->
+                <input type="email" id="email" placeholder="Электронная почта" required />
+                <!-- Поле ввода для пароля пользователя -->
+                <input type="password" id="password1" placeholder="Создать пароль" required />
+                <!-- Поле ввода для пароля пользователя -->
+                <input type="password" id="password2" placeholder="Подтвердить пароль" required />
+                <!-- Ссылка для уже зарегистрированных пользователей -->
+                <div class="already-registered">
+                    <p><a href="http://127.0.0.1:8000/static/sign-in-page.html">Уже зарегистрированы? Войти в аккаунт</a></p>
+                </div>
+                <!-- Кнопка для отправки формы и создания пользователя -->
+                <input type="submit" value="Создать аккаунт" />
+            </form>
+        </div>
+
+
+        <script>
+            const apiBaseUrl = 'http://127.0.0.1:8000';
+            let accessToken = '';
+            document.getElementById("create-user-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const username = document.getElementById("username").value;
+                const email = document.getElementById("email").value;
+                const password1 = document.getElementById("password1").value;
+                const password2 = document.getElementById("password2").value;
+
+                if (password1 == password2) {
+                    const password = document.getElementById("password2").value;
+
+                    const response = await fetch(`${apiBaseUrl}/register/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ username, email, password }),
+                    });
+                
+                    if (response.ok) {
+                        alert("Аккаунт успешно создан!");
+                        window.location.href="http://127.0.0.1:8000/static/sign-in-page.html";
+                    } else {
+                        alert("Ошибка при создании пользователя");
+                    }
+                } else {
+                    alert("Пароли не совпадают")
+                }
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <!-- Устанавливает кодировку символов для страницы в UTF-8 -->
+        <meta charset="UTF-8" />
+        <!-- Устанавливает метатег viewport для управления макетом страницы на
+        мобильных устройствах -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- Заголовок страницы, отображаемый на вкладке браузера -->
+        <title>Форма входа</title>
+        <!-- Стили страницы -->
+        <link rel="stylesheet" href="authorization-styles.css">
+    </head>
+    <body>
+        <div>
+            <!-- Заголовок для формы входа -->
+            <h2>Вход в аккаунт</h2>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Логин" required />
+                <input type="password" id="login-password" placeholder="Пароль" required />
+                <!-- Ссылка для ещё незарегистрированных пользователей -->
+                <div class="not-registered">
+                    <p><a href="http://127.0.0.1:8000/static/registration-page.html">Ещё не зарегистрированы? Зарегистрироваться</a></p>
+                </div>
+                <input type="submit" value="Войти в аккаунт" />
+            </form>
+        </div>
+
+        <script>
+            const apiBaseUrl = 'http://127.0.0.1:8000';
+            let accessToken = '';
+            async function fetchUsers() {
+                const response = await fetch(`${apiBaseUrl}/users/`);
+                const users = await response.json();
+                const userList = document.getElementById("user-list");
+                userList.innerHTML = "";
+                users.forEach((user) => {
+                    const li = document.createElement("li");
+                    li.textContent = `${user.id}: ${user.username} (${user.email})`;
+                    userList.appendChild(li);
+                });
+            }
+
+            document.getElementById("login-form").addEventListener("submit", async function (event) {
+                event.preventDefault();
+                const username = document.getElementById("login-username").value;
+                const password = document.getElementById("login-password").value;
+                const headers = {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                };
+                const body = new URLSearchParams({
+                    grant_type: "password",
+                    username: username,
+                    password: password,
+                });
+                try {
+                    const response = await fetch(`${apiBaseUrl}/token`, {
+                        method: "POST",
+                        headers: headers,
+                        body: body,
+                    });
+                    const data = await response.json();
+                    console.log(data);
+                    if (data.access_token) {
+                        accessToken = data.access_token;
+                        localStorage.setItem('accessToken', accessToken);
+                        window.location.href = `h-p.html?token=${accessToken}`; // Добавляем токен в URL для надежности
+                    } else {
+                        alert("Ошибка входа");
+                    }
+                } catch (error) {
+                    console.error("Ошибка запроса:", error);
+                    alert("Ошибка запроса");
+                }
+            });
+        </script>
+    </body>
+</html>
