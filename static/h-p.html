@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Покупка товаров для питомцев</title>
+    <link rel="stylesheet" href="main-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .nav-button.active {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Нижняя панель навигации -->
+        <footer class="bottom-nav">
+            <button class="nav-button active" id="search-nav" onclick="location.href='http://127.0.0.1:8000/static/h-p.html';">
+                <i class="fas fa-search"></i>
+                <span>Поиск</span>
+            </button>
+            <button class="nav-button" id="cart-nav" onclick="location.href='http://127.0.0.1:8000/static/basket-page.html';">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Корзина</span>
+            </button>
+            <button class="nav-button" id="create-nav" onclick="location.href='http://127.0.0.1:8000/static/create-product-page.html';">
+                <i class="fas fa-folder-plus"></i>
+                <span>Разместить объявление</span>
+            </button>
+            <button class="nav-button" id="account-nav" onclick="location.href='http://127.0.0.1:8000/static/account-page.html';">
+                <i class="fas fa-user"></i>
+                <span>Аккаунт</span>
+            </button>
+        </footer>
+
+        <!-- Шапка с поиском -->
+        <header class="search-header">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Поиск товаров...">
+                <button id="search-button" onclick="searchProducts()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Основное содержимое - список товаров -->
+        <main>
+            <div class="products-container">
+                <ul id="product-list" class="product-grid"></ul>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const apiBaseUrl = 'http://127.0.0.1:8000';
+        let accessToken = localStorage.getItem('accessToken'); // Получаем токен из localStorage
+        let searchWord = localStorage.getItem('searchWord');
+        let isButtonCooldown = false;
+        // Загрузка товаров при открытии страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем токен в URL (на случай, если он был передан при редиректе)
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            if (tokenFromUrl) {
+                localStorage.setItem('accessToken', tokenFromUrl);
+                // Убираем токен из URL для безопасности
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            fetchProducts();
+        });
+        
+        // Обработчики кнопок
+        document.getElementById('search-button').addEventListener('click', searchProducts);
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchProducts();
+        });
+        
+        function searchProducts() {
+            searchWord = document.getElementById('search-input').value;
+            localStorage.setItem('searchWord', searchWord);
+            window.location.href = 'search-page.html'
+        }
+        
+        // Получаем токен из URL или localStorage
+        function getToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+            if (tokenFromUrl) {
+                localStorage.setItem('token', tokenFromUrl);
+                // Убираем токен из URL для безопасности
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return tokenFromUrl;
+            }
+            return localStorage.getItem('token');
+        }
+        
+        // let accessToken = getToken();
+
+        
+
+        // Загрузка товаров при открытии страницы
+        document.addEventListener('DOMContentLoaded', fetchProducts);
+        
+        // Обработчики кнопок
+        document.getElementById('search-button').addEventListener('click', searchProducts);
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchProducts();
+        });
+
+        // Функция загрузки товаров
+        async function fetchProducts() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/sales/`);
+                if (!response.ok) {
+                    throw new Error('Ошибка сети');
+                }
+                const products = await response.json();
+                renderProducts(products);
+            } catch (error) {
+                console.error('Ошибка при загрузке товаров:', error);
+                document.getElementById('product-list').innerHTML = '<p class="no-products">Ошибка загрузки товаров</p>';
+            }
+        }
+        
+        // Функция отрисовки товаров
+        function renderProducts(products) {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+            
+            if (products.length === 0) {
+                productList.innerHTML = '<p class="no-products">Товары не найдены</p>';
+                return;
+            }
+            
+            products.forEach(product => {
+                const productItem = document.createElement('li');
+                productItem.className = 'product-item';
+                productItem.innerHTML = `
+                    <div class="product-card">
+                        <h3>${product.name}</h3>
+                        <p class="price">${product.price} руб.</p>
+                        <p class="amount">В наличии: ${product.amount} шт.</p>
+                        <p class="description">${product.description}</p>
+                        <button class="add-to-cart" data-product-id="${product.id}">В корзину</button>
+                        <div class="quantity-control hidden" data-product-id="${product.id}">
+                            <button class="quantity-btn minus-btn">-</button>
+                            <input type="number" class="quantity-input" value="1" min="0" max="${product.amount}">
+                            <button class="quantity-btn plus-btn">+</button>
+                        </div>
+                    </div>
+                `;
+                productList.appendChild(productItem);
+            });
+
+            // Добавляем обработчики для кнопок "В корзину"
+            document.querySelectorAll('.add-to-cart').forEach(button => {
+                button.addEventListener('click', async function() {
+                    if (isButtonCooldown) return;
+                    const productId = this.getAttribute('data-product-id');
+                    await addToBasket(productId, 1);
+                    
+                    // Прячем кнопку и показываем контролы количества
+                    this.classList.add('hidden');
+                    const quantityControl = document.querySelector(`.quantity-control[data-product-id="${productId}"]`);
+                    quantityControl.classList.remove('hidden');
+                });
+            });
+
+            // Добавляем обработчики для кнопок "+" и "-"
+            document.querySelectorAll('.plus-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (isButtonCooldown) return;
+                    isButtonCooldown = true;
+                    const input = this.parentElement.querySelector('.quantity-input');
+                    const max = parseInt(input.getAttribute('max'));
+                    if (parseInt(input.value) < max) {
+                        input.value = parseInt(input.value) + 1;
+                        updateBasketItem(this.parentElement.getAttribute('data-product-id'), input.value);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.minus-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (isButtonCooldown) return;
+                    isButtonCooldown = true;
+                    const input = this.parentElement.querySelector('.quantity-input');
+                    if (parseInt(input.value) > 0) {
+                        input.value = parseInt(input.value) - 1;
+                        updateBasketItem(this.parentElement.getAttribute('data-product-id'), input.value);
+                    }
+                });
+            });
+
+            // Обработчик изменения значения в input
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                input.addEventListener('change', function() {
+                    if (isButtonCooldown) return;
+                    const productId = this.parentElement.getAttribute('data-product-id');
+                    const max = parseInt(this.getAttribute('max'));
+                    let value = parseInt(this.value);
+                    
+                    if (isNaN(value) || value < 0) value = 0;
+                    if (value > max) value = max;
+                    
+                    this.value = value;
+                    updateBasketItem(productId, value);
+                });
+            });
+        }
+
+        // Функция добавления товара в корзину
+        async function addToBasket(productId, amount) {
+            const accessToken = localStorage.getItem('accessToken');
+            
+            if (!accessToken) {
+                alert('Необходимо авторизоваться для добавления товаров в корзину');
+                window.location.href = 'registration-page.html';
+                return;
+            }
+            
+            try {
+                isButtonCooldown = true;
+                // Формируем URL с query-параметрами
+                const url = new URL(`${apiBaseUrl}/basket/add`);
+                url.searchParams.append('product_id', productId);
+                url.searchParams.append('amount', amount);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                        // 'Content-Type' не нужен, так как мы не отправляем body
+                    }
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('accessToken');
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    window.location.href = 'sign-in-page.html';
+                    return;
+                }
+
+                if (response.status === 422) {
+                    const errorData = await response.json();
+                    console.error('Ошибка валидации:', errorData);
+                    alert(`Ошибка: ${errorData.detail || 'Неверные данные'}`);
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Товар добавлен в корзину:', result);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при добавлении в корзину: ' + error.message);
+            } finally {
+                setTimeout(() => {
+                    isButtonCooldown = false;
+                }, 500);
+            }
+        }
+
+        // Функция обновления количества товара в корзине
+        async function updateBasketItem(productId, amount) {
+            try {
+                isButtonCooldown = true;
+                // В вашем API нет отдельного endpoint для обновления, поэтому мы сначала удаляем, потом добавляем
+                // Сначала удаляем товар из корзины
+                const response = await fetch(`${apiBaseUrl}/basket/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                // Затем добавляем с новым количеством
+                if (amount > 0) {
+                    await addToBasket(productId, amount);
+                } else {
+                    const result = await response.json();
+                }
+            } catch (error) {
+                console.error('Ошибка при обновлении корзины:', error);
+            }
+        }
+
+
+    </script>
+</body>
+</html>

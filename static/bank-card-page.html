@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавление банковской карты</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .card-form-container {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .card-preview {
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-preview::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-type {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .card-number {
+            font-size: 20px;
+            letter-spacing: 1px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .card-details {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .card-expiry {
+            text-align: right;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .row .form-group {
+            flex: 1;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #1a5dc8;
+        }
+        
+        .default {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        
+        .bank-logo {
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        /* Стили для полей ввода на карте */
+        .card-input {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 16px;
+            padding: 5px 8px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        
+        .card-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .card-input-container {
+            position: relative;
+        }
+        
+        .card-input-label {
+            position: absolute;
+            top: -18px;
+            left: 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error {
+            border-color: #ff6b6b !important;
+        }
+        
+        .card-form {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card-form-container">
+        <div class="card-preview" id="cardPreview">
+            <div class="card-header">
+                <div class="card-type" id="cardType">Банковская карта</div>
+                <div class="card-logo" id="cardLogo"></div>
+            </div>
+            
+            <div class="card-input-container">
+                <div class="card-input-label">Номер карты</div>
+                <input type="text" id="cardNumber" class="card-input" placeholder="1234 5678 9012 3456" maxlength="19">
+                <div class="error-message" id="cardNumberError">Номер карты должен содержать не менее 16 цифр</div>
+            </div>
+            
+            <div class="card-details">
+                <div class="card-input-container" style="width: 60%;">
+                    <div class="card-input-label">Срок действия</div>
+                    <input type="text" id="cardExpiryInput" class="card-input" placeholder="MM/YY" maxlength="5">
+                    <div class="error-message" id="cardExpiryError">Введите корректный срок действия (MM/YY)</div>
+                </div>
+                
+                <div class="card-input-container" style="width: 35%;">
+                    <div class="card-input-label">CVC</div>
+                    <input type="password" id="cardCvc" class="card-input" placeholder="•••" maxlength="3" inputmode="numeric" pattern="[0-9]*">
+                    <div class="error-message" id="cardCvcError">CVC должен содержать 3 цифры</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-form">
+            <button type="button" id="submitBtn">Оплатить</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cardNumberInput = document.getElementById('cardNumber');
+            const cardExpiryInput = document.getElementById('cardExpiryInput');
+            const cardCvcInput = document.getElementById('cardCvc');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            const cardPreview = document.getElementById('cardPreview');
+            const cardTypeDisplay = document.getElementById('cardType');
+            const cardLogoDisplay = document.getElementById('cardLogo');
+            
+            // Элементы для отображения ошибок
+            const cardNumberError = document.getElementById('cardNumberError');
+            const cardExpiryError = document.getElementById('cardExpiryError');
+            const cardCvcError = document.getElementById('cardCvcError');
+            
+            // Форматирование номера карты
+            cardNumberInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                let formattedValue = '';
+                
+                for (let i = 0; i < value.length; i++) {
+                    if (i > 0 && i % 4 === 0) {
+                        formattedValue += ' ';
+                    }
+                    formattedValue += value[i];
+                }
+                
+                e.target.value = formattedValue;
+                validateCardNumber();
+            });
+            
+            // Форматирование срока действия
+            cardExpiryInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                
+                if (value.length > 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                }
+                
+                e.target.value = value;
+                validateCardExpiry();
+            });
+            
+            // Валидация CVC - разрешаем только цифры
+            cardCvcInput.addEventListener('input', function(e) {
+                // Удаляем все нецифровые символы
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                validateCardCvc();
+            });
+            
+            // Функция валидации номера карты
+            function validateCardNumber() {
+                const cardNumber = cardNumberInput.value.replace(/\s+/g, '');
+                const isValid = cardNumber.length >= 16 && /^\d+$/.test(cardNumber);
+                
+                if (!isValid) {
+                    cardNumberInput.classList.add('error');
+                    cardNumberError.style.display = 'block';
+                    return false;
+                } else {
+                    cardNumberInput.classList.remove('error');
+                    cardNumberError.style.display = 'none';
+                    return true;
+                }
+            }
+            
+            // Функция валидации срока действия
+            function validateCardExpiry() {
+                const value = cardExpiryInput.value;
+                const parts = value.split('/');
+                let isValid = false;
+                
+                if (value.length === 5) {
+                    const month = parseInt(parts[0], 10);
+                    const year = parseInt(parts[1], 10);
+                    
+                    const currentYear = new Date().getFullYear() % 100;
+                    const currentMonth = new Date().getMonth() + 1;
+                    
+                    isValid = (month >= 1 && month <= 12) && 
+                              (year >= currentYear || (year === currentYear && month >= currentMonth));
+                }
+                
+                if (!isValid) {
+                    cardExpiryInput.classList.add('error');
+                    cardExpiryError.style.display = 'block';
+                    return false;
+                } else {
+                    cardExpiryInput.classList.remove('error');
+                    cardExpiryError.style.display = 'none';
+                    return true;
+                }
+            }
+            
+            // Функция валидации CVC
+            function validateCardCvc() {
+                const cvc = cardCvcInput.value;
+                const isValid = cvc.length === 3 && /^\d+$/.test(cvc);
+                
+                if (!isValid) {
+                    cardCvcInput.classList.add('error');
+                    cardCvcError.style.display = 'block';
+                    return false;
+                } else {
+                    cardCvcInput.classList.remove('error');
+                    cardCvcError.style.display = 'none';
+                    return true;
+                }
+            }
+            
+            // Обработка отправки формы
+            submitBtn.addEventListener('click', function() {
+                const isCardNumberValid = validateCardNumber();
+                const isCardExpiryValid = validateCardExpiry();
+                const isCardCvcValid = validateCardCvc();
+                
+                if (isCardNumberValid && isCardExpiryValid && isCardCvcValid) {
+                    alert('Транзакция выполнена!');
+                    window.location.href = 'basket-page.html';
+                } else {
+                    // Показываем все ошибки, если они есть
+                    if (!isCardNumberValid) {
+                        cardNumberInput.classList.add('error');
+                        cardNumberError.style.display = 'block';
+                    }
+                    if (!isCardExpiryValid) {
+                        cardExpiryInput.classList.add('error');
+                        cardExpiryError.style.display = 'block';
+                    }
+                    if (!isCardCvcValid) {
+                        cardCvcInput.classList.add('error');
+                        cardCvcError.style.display = 'block';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

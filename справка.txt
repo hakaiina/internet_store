@@ -1,6 +1,0 @@
-ЗАПУСК ВИРТУАЛКИ venv\Scripts\activate 
-ЗАВИСИМОСТИ:
-pip install "fastapi[standard]"
-pip install -r requirements.txt
-pip install fastapi uvicorn mysql-connector-python python-jose passlib httpx
-ЗАПУСК ПРИЛОЖЕНИЯ: fastapi dev main.py
