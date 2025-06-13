@@ -1,8 +1,9 @@
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Annotated, List
-from fastapi import FastAPI, HTTPException, Depends, status  # , Path
+from typing import Annotated, List, Optional
+from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form  # , Path
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime, select, delete  # , insert, update, all
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime, LargeBinary, select, \
+    delete  # , insert, update, all
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import IntegrityError
@@ -13,7 +14,8 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta, timezone
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
+
 # блок переменных
 
 # блок создания объектов
@@ -30,6 +32,8 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
 # блок создания объектов
 
 # блок создания схем
@@ -41,6 +45,8 @@ class User(Base):
     email = Column(String(100), unique=True, index=True)
     hashed_password = Column(String(100))
     disabled = Column(Boolean, default=False)
+
+
 class product(Base):
     __tablename__ = "product"
     id = Column(Integer, primary_key=True, index=True)
@@ -49,20 +55,37 @@ class product(Base):
     amount = Column(Integer)
     description = Column(String(500))
     seller_id = Column(Integer, ForeignKey('user.id'))
+    image = Column(LargeBinary(length=16777215))  # Add this field for storing image data
+    image_type = Column(String(20))  # Add this field for storing image MIME type
+
+
 class product_user(Base):
     __tablename__ = "basket"
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey('product.id'))
     amount = Column(Integer)
     user_id = Column(Integer, ForeignKey('user.id'))
+
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
+    giga_order_id = Column(Integer, ForeignKey("giga_orders.id"))  # добавлено
     user_id = Column(Integer, ForeignKey("user.id"))
     product_name = Column(String(50))
     quantity = Column(Integer)
     price = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class GigaOrder(Base):
+    __tablename__ = "giga_orders"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("user.id"))
+    total_price = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # Создание таблиц в базе данных
 Base.metadata.create_all(bind=engine)
 origins = [
@@ -81,46 +104,71 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+
+
 class UserUpdate(BaseModel):
     username: str | None = None
     email: str | None = None
     password: str | None = None
     disabled: bool | None = None
+
+
 class UserResponse(BaseModel):
     id: int
     username: str
     email: str
     disabled: bool | None = None
+
     class Config:
         from_attributes = True
+
+
 class UserInDB(UserResponse):
     hashed_password: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
 class TokenData(BaseModel):
     username: str | None = None
 
+
 class ProductCreate(BaseModel):
-    username: str
-    email: str
-    password: str
+    name: str
+    price: int
+    amount: int
+    description: str
+
+
 class ProductUpdate(BaseModel):
     username: str | None = None
     email: str | None = None
     password: str | None = None
     disabled: bool | None = None
+
+
 class ProductResponse(BaseModel):
     id: int
-    username: str
-    email: str
-    disabled: bool | None = None
+    name: str
+    price: int
+    amount: int
+    description: str
+    seller_id: int
+    image_type: str
+
     class Config:
         from_attributes = True
+        # json_encoders = {bytes: lambda v: None}  # Skip binary data during JSON serialization
+
+
 class OrderResponse(BaseModel):
     id: int
     user_id: int
@@ -128,8 +176,33 @@ class OrderResponse(BaseModel):
     quantity: int
     price: float
     created_at: datetime
+
     class Config:
         from_attributes = True
+
+
+class OrderItem(BaseModel):
+    id: int
+    product_name: str
+    quantity: int
+    price: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GigaOrderResponse(BaseModel):
+    id: int
+    user_id: int
+    total_price: int
+    created_at: datetime
+    items: List[OrderItem]
+
+    class Config:
+        from_attributes = True
+
+
 # блок создания схем
 
 # блок функций
@@ -141,16 +214,20 @@ def get_db():
     finally:
         db.close()
 
+
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed_password.decode('utf-8')
 
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def get_password_hash(password):
     return pwd_context.hash(password)
+
 
 def authenticate_user(db: Session, username: str, password: str):
     user = get_user_by_username(db, username)  # Используем правильную функцию
@@ -159,6 +236,7 @@ def authenticate_user(db: Session, username: str, password: str):
     if not verify_password(password, user.hashed_password):
         return False
     return user
+
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
@@ -170,8 +248,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 def get_user_by_username(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
+
 
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
@@ -179,13 +259,15 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-def get_basket_price(db: Session, user_id: int, result = 0):
+
+def get_basket_price(db: Session, user_id: int, result=0):
     select_query = select(product.price).join(product_user).filter(product_user.user_id == user_id).all()
     for i in select_query:
-        result+=i
+        result += i
     return result
 
-def basket_delete(db:Session, product_id: int, user_id:int):
+
+def basket_delete(db: Session, product_id: int, user_id: int):
     delete(product_user).filter([product_user.product_id == product_id, product_user.user_id == user_id]).all()
 
 
@@ -207,10 +289,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
     if user is None:
         raise credentials_exception
     return user
+
+
 async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
 # блок функций
 
 # блок маршрутов
@@ -218,6 +304,7 @@ async def get_current_active_user(current_user: Annotated[User, Depends(get_curr
 async def get_client():
     with open("static/home-page.html", "r", encoding="utf-8") as file:
         return file.read()
+
 
 @app.post("/register/", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -236,6 +323,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail="Username or Email already registered")
 
+
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
@@ -251,12 +339,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @app.get("/users/", response_model=list[UserResponse])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     if not users:
         raise HTTPException(status_code=404, detail="Users not found")
     return users
+
 
 # Маршрут для создания нового пользователя
 
@@ -265,12 +355,15 @@ def get_users(db: Session = Depends(get_db)):
 async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
     return {"token": token}
 
+
 @app.get("/users/me", response_model=UserResponse)
 async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
     return current_user
 
+
 @app.put("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db),
+                current_user: User = Depends(get_current_active_user)):
     user = db.query(User).filter(User.id == user_id).first()
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="You can only update your profile")
@@ -292,7 +385,7 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         db.rollback()
         raise HTTPException(status_code=400, detail="Username or Email already registered")
 
-    
+
 # Маршрут для удаления пользователя по ID
 @app.delete("/users/{user_id}", response_model=UserResponse)
 def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
@@ -301,13 +394,15 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     db.delete(user)
     db.commit()
     return user
 
+
 @app.post("/basket/add")
-def add_to_basket(product_id: int, amount: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+def add_to_basket(product_id: int, amount: int, current_user: User = Depends(get_current_active_user),
+                  db: Session = Depends(get_db)):
     product_obj = db.query(product).filter(product.id == product_id).first()
     if not product_obj:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -317,8 +412,10 @@ def add_to_basket(product_id: int, amount: int, current_user: User = Depends(get
     db.refresh(basket_entry)
     return {"message": "Product added to basket", "basket_id": basket_entry.id}
 
+
 @app.delete("/basket/{product_id}")
-def delete_from_basket(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+def delete_from_basket(product_id: int, db: Session = Depends(get_db),
+                       current_user: User = Depends(get_current_active_user)):
     item = db.query(product_user).filter_by(product_id=product_id, user_id=current_user.id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found in basket")
@@ -326,37 +423,86 @@ def delete_from_basket(product_id: int, db: Session = Depends(get_db), current_u
     db.commit()
     return {"detail": "Item removed from basket"}
 
+
 @app.get("/basket/")
 def get_basket(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    items = db.query(product, product_user.amount).join(product_user).filter(product_user.user_id == current_user.id).all()
+    items = db.query(product, product_user.amount).join(product_user).filter(
+        product_user.user_id == current_user.id).all()
     return [{"id": p.id, "name": p.name, "price": p.price, "amount": a} for p, a in items]
+
 
 @app.post("/orders/add")
 def create_order(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     basket_items = db.query(product_user).filter_by(user_id=current_user.id).all()
     if not basket_items:
         raise HTTPException(status_code=400, detail="Basket is empty")
+
     total = 0
+    orders_to_add = []
     for item in basket_items:
         prod = db.query(product).filter_by(id=item.product_id).first()
         if prod.amount < item.amount:
             raise HTTPException(status_code=400, detail=f"Not enough stock for {prod.name}")
-        total += prod.price * item.amount
         prod.amount -= item.amount
-        new_order = Order(user_id=current_user.id, product_name=prod.name, quantity=item.amount, price=prod.price*item.amount)
-        db.add(new_order)
-        db.commit()
+        order_price = prod.price * item.amount
+        total += order_price
+        orders_to_add.append((prod.name, item.amount, order_price))
+
+    giga_order = GigaOrder(user_id=current_user.id, total_price=total)
+    db.add(giga_order)
+    db.commit()
+    db.refresh(giga_order)
+
+    for name, qty, price in orders_to_add:
+        order = Order(
+            giga_order_id=giga_order.id,
+            user_id=current_user.id,
+            product_name=name,
+            quantity=qty,
+            price=price
+        )
+        db.add(order)
+
     db.query(product_user).filter_by(user_id=current_user.id).delete()
     db.commit()
-    return {"detail": "Order placed", "total_price": total}
 
-@app.post("/sales/add")
-def post_sale(name: str, price: int, amount: int, description: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    new_product = product(name=name, price=price, amount=amount, description=description, seller_id=current_user.id)
+    return {"detail": "Giga order placed", "total_price": total, "giga_order_id": giga_order.id}
+
+
+@app.post("/sales/add", response_model=ProductResponse)
+async def post_sale(
+        name: str = Form(...),
+        price: int = Form(...),
+        amount: int = Form(...),
+        description: str = Form(...),
+        image: UploadFile = File(None),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+    image_data = None
+    image_type = None
+
+    if image:
+        image_data = await image.read()
+        image_type = image.content_type
+
+    new_product = product(
+        name=name,
+        price=price,
+        amount=amount,
+        description=description,
+        seller_id=current_user.id,
+        image=image_data,
+        image_type=image_type
+    )
+
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
-    return new_product
+
+    # Convert to Pydantic model which will handle the binary data properly
+    return ProductResponse.from_orm(new_product)
+
 
 @app.delete("/sales/{product_id}")
 def delete_sale(product_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
@@ -367,24 +513,37 @@ def delete_sale(product_id: int, db: Session = Depends(get_db), current_user: Us
     db.commit()
     return {"detail": "Sale deleted"}
 
-@app.get("/sales/")
+
+@app.get("/sales/", response_model=List[ProductResponse])
 def get_sales(db: Session = Depends(get_db)):
     sales = db.query(product).all()
     return sales
 
-@app.get("/sales/me")
+
+@app.get("/sales/me", response_model=List[ProductResponse])
 def get_my_sales(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     sales = db.query(product).filter_by(seller_id=current_user.id).all()
     if not sales:
         raise HTTPException(status_code=404, detail="You have not your own products")
     return sales
 
-@app.get("/sales/search/{product_name}")
-def get_my_sales(product_name: str, db: Session = Depends(get_db)):
-    sales = db.query(product).filter_by(name=product_name).all()
+
+@app.get("/sales/search/{product_name}", response_model=List[ProductResponse])
+def search_products(product_name: str, db: Session = Depends(get_db)):
+    sales = db.query(product).filter(product.name.contains(product_name)).all()
     if not sales:
-        raise HTTPException(status_code=404, detail="You have not your own products")
+        raise HTTPException(status_code=404, detail="Products not found")
     return sales
+
+
+@app.get("/products/{product_id}/image")
+async def get_product_image(product_id: int, db: Session = Depends(get_db)):
+    product_img = db.query(product).filter(product.id == product_id).first()
+    if not product_img or not product_img.image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return Response(content=product_img.image, media_type=product_img.image_type)
+
 
 @app.put("/sales/{product_id}")
 def update_sale(product_id: int, name: str | None = None, price: int | None = None,
@@ -403,10 +562,39 @@ def update_sale(product_id: int, name: str | None = None, price: int | None = No
     db.refresh(prod)
     return prod
 
-@app.get("/orders", response_model = List[OrderResponse])
-def get_all_orders(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
-    orders = db.query(Order).filter(Order.user_id == current_user.id).all()
-    if not orders:
-        raise HTTPException(status_code = 404, detail="No orders found")
-    return orders
+
+@app.get("/giga_orders/{giga_order_id}", response_model=GigaOrderResponse)
+def get_giga_order_by_id(giga_order_id: int, db: Session = Depends(get_db),
+                         current_user: User = Depends(get_current_active_user)):
+    giga_order = db.query(GigaOrder).filter_by(id=giga_order_id, user_id=current_user.id).first()
+    if not giga_order:
+        raise HTTPException(status_code=404, detail="Giga order not found")
+
+    orders = db.query(Order).filter_by(giga_order_id=giga_order.id).all()
+
+    return GigaOrderResponse(
+        id=giga_order.id,
+        user_id=giga_order.user_id,
+        total_price=giga_order.total_price,
+        created_at=giga_order.created_at,
+        items=orders
+    )
+
+
+@app.get("/giga_orders", response_model=List[GigaOrderResponse])
+def get_giga_orders(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+    giga_orders = db.query(GigaOrder).filter_by(user_id=current_user.id).all()
+    result = []
+    for go in giga_orders:
+        orders = db.query(Order).filter_by(giga_order_id=go.id).all()
+        result.append(
+            GigaOrderResponse(
+                id=go.id,
+                user_id=go.user_id,
+                total_price=go.total_price,
+                created_at=go.created_at,
+                items=orders
+            )
+        )
+    return result
 # блок маршрутов

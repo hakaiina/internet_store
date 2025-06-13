@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+            background-color: #e2d6af;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -15,16 +15,16 @@
             margin: 0;
             padding: 20px;
         }
-        
+
         .card-form-container {
             width: 100%;
             max-width: 400px;
         }
-        
+
         .card-preview {
             border-radius: 12px;
             padding: 20px;
-            color: white;
+            color: #ffffff;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
@@ -32,11 +32,11 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #233a2a 0%, #576642 100%);
             position: relative;
             overflow: hidden;
         }
-        
+
         .card-preview::before {
             content: '';
             position: absolute;
@@ -46,68 +46,71 @@
             height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
         }
-        
+
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .card-type {
             font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
+            color: #ecce6e;
         }
-        
+
         .card-number {
             font-size: 20px;
             letter-spacing: 1px;
             margin: 20px 0;
             font-family: 'Courier New', monospace;
         }
-        
+
         .card-details {
             display: flex;
             justify-content: space-between;
         }
-        
+
         .card-expiry {
             text-align: right;
         }
-        
+
         .form-group {
             margin-bottom: 15px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            color: #333;
+            color: #233a2a;
         }
-        
+
         input {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid #8c8e60;
             border-radius: 4px;
             font-size: 16px;
             box-sizing: border-box;
+            background-color: #ffffff;
+            color: #000000;
         }
-        
+
         .row {
             display: flex;
             gap: 15px;
         }
-        
+
         .row .form-group {
             flex: 1;
         }
-        
+
         button {
             width: 100%;
             padding: 12px;
-            background-color: #2575fc;
+            background-color: #576642;
             color: white;
             border: none;
             border-radius: 4px;
@@ -115,21 +118,22 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         button:hover {
-            background-color: #1a5dc8;
+            background-color: #233a2a;
         }
-        
+
         .default {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #233a2a 0%, #576642 100%);
         }
-        
+
         .bank-logo {
             font-weight: bold;
             font-size: 14px;
             text-transform: uppercase;
+            color: #ecce6e;
         }
-        
+
         /* Стили для полей ввода на карте */
         .card-input {
             background: rgba(255, 255, 255, 0.2);
@@ -140,21 +144,21 @@
             border-radius: 4px;
             margin: 2px 0;
         }
-        
+
         .card-input::placeholder {
             color: rgba(255, 255, 255, 0.6);
         }
-        
+
         .card-input-container {
             position: relative;
         }
-        
+
         .card-input-label {
             position: absolute;
             top: -18px;
             left: 0;
             font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
+            color: #ecce6e;
         }
         
         .error-message {

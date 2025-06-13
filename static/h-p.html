@@ -3,12 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Покупка товаров для питомцев</title>
-    <link rel="stylesheet" href="main-styles.css">
+    <title>Покупка смартфонов</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Общие стили */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e2d6af;
+            color: #000000;
+        }
+
+        .container {
+            margin: 0 auto;
+            padding-bottom: 70px; /* Для нижней панели */
+        }
+
+        /* Шапка с поиском */
+        .search-header {
+            background-color: #8c8e60;
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        #search-input {
+            width: 80%;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 25px 0 0 25px;
+            font-size: 16px;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        #search-button {
+            background-color: #233a2a;
+            color: #ffffff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 0 25px 25px 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #search-button:hover {
+            background-color: #576642;
+        }
+
+        /* Список товаров */
+        .products-container {
+            padding: 20px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .product-item {
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border: 1px solid #8c8e60;
+        }
+
+        .product-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .product-card {
+            padding: 15px;
+        }
+
+        .product-card h3 {
+            margin-top: 0;
+            color: #576642;
+            font-size: 18px;
+        }
+
+        .price {
+            font-weight: bold;
+            font-size: 18px;
+            color: #233a2a;
+            margin: 10px 0;
+        }
+
+        .amount {
+            color: #8c8e60;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .description {
+            color: #233a2a;
+            font-size: 14px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .add-to-cart {
+            background-color: #576642;
+            color: #ffffff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .add-to-cart:hover {
+            background-color: #8c8e60;
+        }
+
+        .no-products {
+            text-align: center;
+            grid-column: 1 / -1;
+            color: #576642;
+            padding: 20px;
+            font-size: 16px;
+        }
+
+        /* Нижняя панель навигации */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            z-index: 100;
+            border-top: 1px solid #8c8e60;
+        }
+
+        .nav-button {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #576642;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 5px 15px;
+            transition: color 0.3s;
+        }
+
+        .nav-button i {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .nav-button:hover, .nav-button.active {
+            color: #233a2a;
+        }
+
+        /* Элементы управления количеством */
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .quantity-input {
+            width: 40px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #8c8e60;
+            border-radius: 4px;
+            background-color: #ffffff;
+            color: #233a2a;
+        }
+
+        .quantity-btn {
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: #ecce6e;
+            border: 1px solid #8c8e60;
+            border-radius: 3px;
+            color: #233a2a;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .quantity-btn:hover {
+            background: #e2d6af;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Адаптивные стили */
+        @media (max-width: 600px) {
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-container {
+                padding: 0 15px;
+            }
+
+            #search-input {
+                width: 75%;
+            }
+        }
         .nav-button.active {
-            color: #007bff;
+            color: #ecce6e; /* Изменено с #007bff */
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -57,6 +294,7 @@
         let accessToken = localStorage.getItem('accessToken'); // Получаем токен из localStorage
         let searchWord = localStorage.getItem('searchWord');
         let isButtonCooldown = false;
+
         // Загрузка товаров при открытии страницы
         document.addEventListener('DOMContentLoaded', function() {
             // Проверяем токен в URL (на случай, если он был передан при редиректе)
@@ -67,22 +305,22 @@
                 // Убираем токен из URL для безопасности
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
-            
+
             fetchProducts();
         });
-        
+
         // Обработчики кнопок
         document.getElementById('search-button').addEventListener('click', searchProducts);
         document.getElementById('search-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') searchProducts();
         });
-        
+
         function searchProducts() {
             searchWord = document.getElementById('search-input').value;
             localStorage.setItem('searchWord', searchWord);
             window.location.href = 'search-page.html'
         }
-        
+
         // Получаем токен из URL или localStorage
         function getToken() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -95,19 +333,6 @@
             }
             return localStorage.getItem('token');
         }
-        
-        // let accessToken = getToken();
-
-        
-
-        // Загрузка товаров при открытии страницы
-        document.addEventListener('DOMContentLoaded', fetchProducts);
-        
-        // Обработчики кнопок
-        document.getElementById('search-button').addEventListener('click', searchProducts);
-        document.getElementById('search-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') searchProducts();
-        });
 
         // Функция загрузки товаров
         async function fetchProducts() {
@@ -123,22 +348,23 @@
                 document.getElementById('product-list').innerHTML = '<p class="no-products">Ошибка загрузки товаров</p>';
             }
         }
-        
+
         // Функция отрисовки товаров
         function renderProducts(products) {
             const productList = document.getElementById('product-list');
             productList.innerHTML = '';
-            
+
             if (products.length === 0) {
                 productList.innerHTML = '<p class="no-products">Товары не найдены</p>';
                 return;
             }
-            
+
             products.forEach(product => {
                 const productItem = document.createElement('li');
                 productItem.className = 'product-item';
                 productItem.innerHTML = `
                     <div class="product-card">
+                        <img class="product-image" id="product-image-${product.id}" src="" alt="${product.name}">
                         <h3>${product.name}</h3>
                         <p class="price">${product.price} руб.</p>
                         <p class="amount">В наличии: ${product.amount} шт.</p>
@@ -152,6 +378,9 @@
                     </div>
                 `;
                 productList.appendChild(productItem);
+
+                // Загружаем изображение для товара
+                loadProductImage(product.id);
             });
 
             // Добавляем обработчики для кнопок "В корзину"
@@ -160,7 +389,7 @@
                     if (isButtonCooldown) return;
                     const productId = this.getAttribute('data-product-id');
                     await addToBasket(productId, 1);
-                    
+
                     // Прячем кнопку и показываем контролы количества
                     this.classList.add('hidden');
                     const quantityControl = document.querySelector(`.quantity-control[data-product-id="${productId}"]`);
@@ -179,6 +408,7 @@
                         input.value = parseInt(input.value) + 1;
                         updateBasketItem(this.parentElement.getAttribute('data-product-id'), input.value);
                     }
+                    setTimeout(() => { isButtonCooldown = false; }, 300);
                 });
             });
 
@@ -191,6 +421,7 @@
                         input.value = parseInt(input.value) - 1;
                         updateBasketItem(this.parentElement.getAttribute('data-product-id'), input.value);
                     }
+                    setTimeout(() => { isButtonCooldown = false; }, 300);
                 });
             });
 
@@ -198,29 +429,52 @@
             document.querySelectorAll('.quantity-input').forEach(input => {
                 input.addEventListener('change', function() {
                     if (isButtonCooldown) return;
+                    isButtonCooldown = true;
                     const productId = this.parentElement.getAttribute('data-product-id');
                     const max = parseInt(this.getAttribute('max'));
                     let value = parseInt(this.value);
-                    
+
                     if (isNaN(value) || value < 0) value = 0;
                     if (value > max) value = max;
-                    
+
                     this.value = value;
                     updateBasketItem(productId, value);
+                    setTimeout(() => { isButtonCooldown = false; }, 300);
                 });
             });
+        }
+
+        // Функция загрузки изображения товара
+        async function loadProductImage(productId) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/products/${productId}/image`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    const imgElement = document.getElementById(`product-image-${productId}`);
+                    imgElement.src = imageUrl;
+                } else {
+                    // Если изображение не найдено, можно установить заглушку
+                    const imgElement = document.getElementById(`product-image-${productId}`);
+                    imgElement.src = 'https://via.placeholder.com/300x200?text=No+Image';
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке изображения:', error);
+                const imgElement = document.getElementById(`product-image-${productId}`);
+                imgElement.src = 'https://via.placeholder.com/300x200?text=Image+Error';
+            }
         }
 
         // Функция добавления товара в корзину
         async function addToBasket(productId, amount) {
             const accessToken = localStorage.getItem('accessToken');
-            
+
             if (!accessToken) {
                 alert('Необходимо авторизоваться для добавления товаров в корзину');
                 window.location.href = 'registration-page.html';
                 return;
             }
-            
+
             try {
                 isButtonCooldown = true;
                 // Формируем URL с query-параметрами
@@ -232,7 +486,6 @@
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
-                        // 'Content-Type' не нужен, так как мы не отправляем body
                     }
                 });
 
@@ -289,8 +542,6 @@
                 console.error('Ошибка при обновлении корзины:', error);
             }
         }
-
-
     </script>
 </body>
 </html>
