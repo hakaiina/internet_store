@@ -19,7 +19,7 @@ async def handle_notification(message: aio_pika.IncomingMessage):
             print(f"❌ Failed to process message: {e}")
 
 async def main():
-    connection = await aio_pika.connect_robust("amqp://user1:password1@localhost:5672/vhost_user1")
+    connection = await aio_pika.connect_robust("amqp://user3:password3@localhost:5672/vhost_user3")
     channel = await connection.channel()
     queue = await channel.declare_queue(QUEUE_NAME, durable=True)
     print("📡 Notification service listening...")

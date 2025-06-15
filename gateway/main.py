@@ -9,7 +9,7 @@ import uuid
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-RABBIT_URL = "amqp://user1:password1@localhost:5672/vhost_user1"
+RABBIT_URL = "amqp://user3:password3@localhost:5672/vhost_user3"
 
 @app.on_event("startup")
 async def startup():
