@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+passlib[bcrypt]
+python-jose
+aio-pika
+jinja2
+python-multipart
+pika
+python-dotenv
