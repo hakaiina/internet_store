@@ -1,10 +1,17 @@
 import asyncio
 import aio_pika
 import json
+import os
+import time
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DATABASE_URL = "sqlite:///./courses.db"
+RABBIT_URL = os.getenv("RABBITMQ_URL")
+print(f"[course_service] RABBIT_URL = {RABBIT_URL}")
 
 Base = declarative_base()
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -24,14 +31,17 @@ async def handle_request(message: aio_pika.IncomingMessage):
         try:
             payload = json.loads(message.body.decode())
             action = payload.get("action")
-
             if action == "get_courses":
                 db = SessionLocal()
                 courses = db.query(Course).all()
                 db.close()
                 result = [
-                    {"id": c.id, "title": c.title, "description": c.description, "price": c.price}
-                    for c in courses
+                    {
+                        "id": c.id,
+                        "title": c.title,
+                        "description": c.description,
+                        "price": c.price
+                    } for c in courses
                 ]
                 if message.reply_to:
                     await message.channel.default_exchange.publish(
@@ -42,13 +52,25 @@ async def handle_request(message: aio_pika.IncomingMessage):
                         routing_key=message.reply_to
                     )
         except Exception as e:
-            print(f"Failed to process course message: {e}")
+            print(f"[course_service] Failed to process message: {e}")
 
 async def main():
-    connection = await aio_pika.connect_robust("amqp://user3:password3@localhost:5672/vhost_user3")
+    for attempt in range(10):
+        try:
+            print(f"[course_service] Trying to connect to RabbitMQ (attempt {attempt + 1}/10)...")
+            connection = await aio_pika.connect_robust(RABBIT_URL)
+            print("[course_service] Connected to RabbitMQ.")
+            break
+        except Exception as e:
+            print(f"[course_service] RabbitMQ not ready: {e}")
+            time.sleep(3)
+    else:
+        print("[course_service] Failed to connect to RabbitMQ after 10 attempts. Exiting.")
+        return
+
     channel = await connection.channel()
     queue = await channel.declare_queue("course_queue", durable=True)
-    print("Course service listening on course_queue...")
+    print("[course_service] Listening on course_queue...")
     await queue.consume(handle_request)
     await asyncio.Future()
 

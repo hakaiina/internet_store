@@ -6,48 +6,66 @@
 
 ## Сервисы
 
-| Сервис             | Назначение                       |
-|--------------------|----------------------------------|
-| `auth_service`     | Авторизация и токены             |
-| `user_service`     | CRUD по пользователю             |
-| `product_service`  | Работа с товарами                |
-| `order_service`    | Оформление заказов (GigaOrder)   |
-| `basket_service`   | Корзина                          |
-| `search_service`   | Поиск по товарам                 |
-| `admin_service`    | Панель управления                |
-| `notification_service` | Email-уведомления (RabbitMQ) |
-| `course_service`   | RPC-сервис с курсами (пример)    |
-| `gateway`          | Точка входа для всех запросов    |
+| Сервис                 | Назначение                            |
+|------------------------|---------------------------------------|
+| `auth_service`         | Авторизация и токены                  |
+| `user_service`         | CRUD по пользователю                  |
+| `product_service`      | Работа с товарами                     |
+| `order_service`        | Оформление заказов                    |
+| `basket_service`       | Корзина                               |
+| `search_service`       | Поиск по товарам                      |
+| `admin_service`        | Панель управления                     |
+| `notification_service` | Email-уведомления через RabbitMQ      |
+| `course_service`       | Пример RPC-сервиса: получение курсов |
+| `gateway`              | Точка входа для всех HTTP-запросов   |
 
 ---
 
-## Запуск
+## Запуск проекта
 
-> Убедитесь, что установлен Docker и Docker Compose.
+> Требуется установленный Docker и Docker Compose
 
 ```bash
 docker-compose up --build
 ```
 
-Открой `http://localhost:8000` — это `gateway`.
+После запуска:
 
-RabbitMQ Management: `http://localhost:15672`  
-(default login: `user1`, password: `password1`)
+- Gateway: [http://localhost:8000](http://localhost:8000)
+- Swagger UI (документация): [http://localhost:8000/docs](http://localhost:8000/docs)
+- RabbitMQ Management: [http://localhost:15672](http://localhost:15672)  
+  Логин: `user3`, пароль: `password3`  
+  Виртуальный хост: `/vhost_user3`
 
 ---
 
-## Тесты и вызовы
-
-Примеры RPC-запросов через `gateway`:
+## Примеры вызовов
 
 ```bash
+# Получение данных текущего пользователя (если токен действителен)
 curl "http://localhost:8000/api/auth/me?token=..."
+
+# Получение списка курсов через RPC
 curl "http://localhost:8000/api/courses"
-curl -X POST http://localhost:8000/api/orders/add -H "Content-Type: application/json" -d '{
-  "user_id": 1,
-  "items": [{"product_name": "Book", "quantity": 2, "price": 500}]
-}'
+
+# Добавление заказа
+curl -X POST http://localhost:8000/api/orders/add   -H "Content-Type: application/json"   -d '{
+    "user_id": 1,
+    "items": [{"product_name": "Book", "quantity": 2, "price": 500}]
+  }'
 ```
+
+---
+
+## Переменные окружения
+
+Файл `.env` содержит:
+
+```
+RABBITMQ_URL=amqp://user3:password3@rabbitmq:5672/vhost_user3
+```
+
+Убедитесь, что все сервисы используют эту переменную для подключения к RabbitMQ.
 
 ---
 
@@ -55,12 +73,13 @@ curl -X POST http://localhost:8000/api/orders/add -H "Content-Type: application/
 
 - Python 3.10+
 - FastAPI
-- RabbitMQ (`aio_pika`)
+- RabbitMQ (через `aio_pika`)
 - SQLite (локально)
+- Взаимодействие сервисов через очереди (RPC и events)
 
 ---
 
-## Структура
+## Структура проекта
 
 ```text
 .
@@ -70,7 +89,14 @@ curl -X POST http://localhost:8000/api/orders/add -H "Content-Type: application/
 │   └── templates/index.html
 ├── auth_service/
 ├── user_service/
-├── ...
+├── product_service/
+├── order_service/
+├── basket_service/
+├── admin_service/
+├── search_service/
+├── notification_service/
+├── course_service/
 ├── docker-compose.yml
+├── .env
 └── README.md
 ```
