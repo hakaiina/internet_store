@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user1
+      RABBITMQ_DEFAULT_PASS: password1
+      RABBITMQ_DEFAULT_VHOST: vhost_user1
+
+  auth_service:
+    build: ./auth_service
+    depends_on:
+      - rabbitmq
+
+  user_service:
+    build: ./user_service
+    depends_on:
+      - rabbitmq
+
+  product_service:
+    build: ./product_service
+    depends_on:
+      - rabbitmq
+
+  order_service:
+    build: ./order_service
+    depends_on:
+      - rabbitmq
+
+  basket_service:
+    build: ./basket_service
+    depends_on:
+      - rabbitmq
+
+  search_service:
+    build: ./search_service
+    depends_on:
+      - rabbitmq
+
+  admin_service:
+    build: ./admin_service
+    depends_on:
+      - rabbitmq
+
+  notification_service:
+    build: ./notification_service
+    depends_on:
+      - rabbitmq
+
+  course_service:
+    build: ./course_service
+    depends_on:
+      - rabbitmq
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
