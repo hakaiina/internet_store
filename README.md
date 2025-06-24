@@ -1,3 +1,4 @@
+
 # Microservices Backend — Online Store
 
 Микросервисная архитектура интернет-магазина на FastAPI + RabbitMQ.
