@@ -24,11 +24,7 @@
 
 ## Запуск проекта
 
-> Требуется установленный Docker и Docker Compose
-
-```bash
-docker-compose up --build
-```
+python -m fastapi dev auth_service/main.py
 
 После запуска:
 
